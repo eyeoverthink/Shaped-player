@@ -1,10 +1,215 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Shaped Player</title>
-<style>body{margin:0;background:#0B0B0F;color:#E8E6EA;font:450 16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif}main{max-width:620px;margin:0 auto;padding:48px 16px}h1{font-size:34px;line-height:1.1;margin:0 0 12px}a{display:block;color:#E8E6EA;background:#151318;border-radius:12px;padding:16px 18px;margin:12px 0;text-decoration:none}a:hover,a:focus-visible{outline:2px solid #D6336C}small{display:block;color:#8A8792}</style></head>
-<body><main><h1>Shaped Player</h1><p>A video player with no box around it.</p>
-<a href="step1/">Step 1 <small>One clip playing over a page with no visible rectangle. The outline is inside the video file.</small></a>
-<a href="step2/">Step 2 <small>Any clip, cut out live in the browser. Choose your own file.</small></a>
-<a href="step3/">Step 3 <small>The embed: one script and one tag put the figure on any website.</small></a>
-<a href="step4/">Step 4 <small>The converter: turn any clip into a shaped clip for the embed.</small></a>
-<a href="step5/">Step 5 <small>Live webcam, cut out in real time. Needs https or localhost.</small></a>
-</main></body></html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shaped Player</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: the hero draws the dashed rectangle a normal player would occupy, left empty; the figure stands half outside it. Everything after is a quiet single column. */
+:root {
+  --bg: #0B0B0F;
+  --panel: #151318;
+  --line: rgba(255, 255, 255, 0.08);
+  --ink: #E8E6EA;
+  --muted: #8A8792;
+  --accent: #C2185B;
+  --accent-hover: #D6336C;
+  --font-ui: "Geist", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --radius: 12px;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 450 16px/1.6 var(--font-ui); -webkit-text-size-adjust: 100%; }
+a { color: inherit; }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--accent-hover); outline-offset: 3px; border-radius: 6px; }
+.wrap { max-width: 1040px; margin: 0 auto; padding: 0 20px; }
+.mono { font: 500 11px/1.4 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+
+nav { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 18px 0; }
+nav .mark { font-weight: 600; letter-spacing: -0.01em; text-decoration: none; }
+nav .links { display: flex; gap: 18px; font-size: 14px; }
+nav .links a { color: var(--muted); text-decoration: none; }
+nav .links a:hover { color: var(--ink); }
+
+/* ---------- hero ---------- */
+.hero { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 40px; align-items: center; padding: 36px 0 72px; }
+h1 { font-size: clamp(40px, 7.2vw, 84px); line-height: .98; letter-spacing: -0.035em; font-weight: 700; margin: 14px 0 20px; text-wrap: balance; }
+h1 s { text-decoration-color: var(--accent); text-decoration-thickness: .08em; color: var(--muted); }
+.lede { font-size: 18px; max-width: 44ch; margin: 0 0 26px; }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 22px; }
+.btn { display: inline-block; background: var(--accent); color: #fff; text-decoration: none; font-weight: 500; font-size: 15px; padding: 13px 18px; border-radius: 10px; }
+.btn:hover { background: var(--accent-hover); }
+.text-link { font-size: 15px; text-underline-offset: 4px; text-decoration-color: var(--muted); }
+
+.frame { position: relative; aspect-ratio: 16 / 10; border: 1.5px dashed rgba(255, 255, 255, .28); border-radius: var(--radius); }
+.frame .tag { position: absolute; left: 12px; top: 10px; }
+.frame .tag2 { position: absolute; left: 12px; bottom: 10px; }
+.frame .slot { position: absolute; right: -6%; bottom: -14%; width: 74%; }
+.frame shaped-player { --shaped-width: 100%; max-width: none; }
+
+/* ---------- sections ---------- */
+section { padding: 56px 0; border-top: 1px solid var(--line); }
+h2 { font-size: clamp(26px, 4vw, 38px); line-height: 1.08; letter-spacing: -0.025em; font-weight: 600; margin: 10px 0 22px; text-wrap: balance; max-width: 22ch; }
+.three { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.cap { display: flex; flex-direction: column; gap: 8px; background: var(--panel); border-radius: var(--radius); padding: 20px; text-decoration: none;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, .28), 0 1px 0 rgba(255, 255, 255, .04) inset; }
+.cap:hover { box-shadow: 0 18px 44px rgba(0, 0, 0, .28), 0 0 0 1px rgba(255, 255, 255, .16) inset; }
+.cap h3 { margin: 0; font-size: 19px; font-weight: 600; letter-spacing: -0.01em; }
+.cap p { margin: 0; color: var(--muted); font-size: 15px; }
+.cap .go { margin-top: auto; padding-top: 8px; font-size: 14px; }
+.split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 40px; align-items: start; }
+.split p { margin: 0 0 14px; max-width: 52ch; }
+pre { margin: 0 0 12px; padding: 16px; overflow-x: auto; background: var(--panel); border-radius: var(--radius); font: 400 13px/1.65 var(--font-mono); white-space: pre; }
+.copy { font: 500 14px/1 var(--font-ui); color: var(--ink); background: transparent; border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; cursor: pointer; }
+.copy:hover { border-color: rgba(255, 255, 255, .3); }
+.facts { list-style: none; margin: 0; padding: 0; }
+.facts li { display: grid; grid-template-columns: 132px 1fr; gap: 14px; padding: 13px 0; border-top: 1px solid var(--line); align-items: baseline; }
+.facts li:first-child { border-top: 0; padding-top: 0; }
+.uses { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 40px; }
+.uses li { padding: 16px 0; border-top: 1px solid var(--line); }
+.uses b { display: block; font-weight: 600; margin-bottom: 2px; }
+.uses span { color: var(--muted); font-size: 15px; }
+.license { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 20px; }
+.license p { margin: 0; max-width: 50ch; }
+footer { padding: 28px 0 44px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 8px 22px; }
+footer a { color: var(--muted); text-decoration: none; font-size: 14px; }
+footer a:hover { color: var(--ink); }
+
+@media (max-width: 760px) {
+  .hero { grid-template-columns: 1fr; gap: 56px; padding: 20px 0 84px; }
+  .frame { margin-right: 6%; }
+  .three, .split, .uses { grid-template-columns: 1fr; }
+  .split { gap: 24px; }
+  section { padding: 44px 0; }
+  .facts li { grid-template-columns: 110px 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav aria-label="Site">
+    <a class="mark" href="#top">Shaped Player</a>
+    <div class="links"><a href="#how">How it works</a><a href="https://github.com/eyeoverthink/Shaped-player">GitHub</a></div>
+  </nav>
+
+  <header class="hero" id="top">
+    <div>
+      <p class="mono">Video without the rectangle</p>
+      <h1>Put a person on your page, not a <s>player</s>.</h1>
+      <p class="lede">Shaped Player shows video in the shape of whoever is in it. The page shows through everywhere else: no frame, no background, no corners.</p>
+      <div class="actions">
+        <a class="btn" href="step4/">Make a shaped clip</a>
+        <a class="text-link" href="#demos">See all five demos</a>
+      </div>
+    </div>
+    <div class="frame" aria-label="Demo: the dashed outline is where an ordinary video player would sit">
+      <span class="mono tag">16 : 10 · where a player would sit</span>
+      <span class="mono tag2">He is a video.<br>Drag him.</span>
+      <div class="slot">
+        <shaped-player src="step1/shaped.mp4" corner="inline" movable controls label="Avatar talking, shown with no frame"></shaped-player>
+      </div>
+    </div>
+  </header>
+
+  <section id="what">
+    <p class="mono">Three pieces</p>
+    <h2>Make the clip, paste the tag, or go live.</h2>
+    <div class="three">
+      <a class="cap" href="step4/"><h3>Convert</h3><p>Choose any video. The person is cut out in your browser and saved as one file. Nothing is uploaded.</p><span class="go">Open the converter →</span></a>
+      <a class="cap" href="step3/"><h3>Embed</h3><p>One script and one tag put the figure on any website, in a corner or inside the layout.</p><span class="go">Try the embed →</span></a>
+      <a class="cap" href="step5/"><h3>Live</h3><p>Your webcam, cut out as it arrives, as a shape you can drag over the page.</p><span class="go">Start the camera →</span></a>
+    </div>
+  </section>
+
+  <section>
+    <div class="split">
+      <div>
+        <p class="mono">For site owners</p>
+        <h2>Two lines of HTML.</h2>
+        <p>Add the script, add the tag, point it at a clip. Choose a corner or set it inside your layout, and decide whether visitors can drag the figure and switch the sound on.</p>
+        <p>Clicks follow the shape, so links and text beside the figure keep working.</p>
+      </div>
+      <div>
+        <pre><code id="snippet">&lt;script src="shaped-player.js"&gt;&lt;/script&gt;
+&lt;shaped-player src="your-clip.mp4"
+  corner="bottom-right" width="320"
+  movable controls&gt;&lt;/shaped-player&gt;</code></pre>
+        <button class="copy" id="copy" type="button">Copy</button> <span class="mono" id="copied" aria-live="polite"></span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <p class="mono">Where it fits</p>
+    <h2>Anywhere a talking head gets a box today.</h2>
+    <ul class="uses">
+      <li><b>Creators</b><span>An avatar or host standing on the page beside the work, in the page's own colours.</span></li>
+      <li><b>Shops</b><span>A presenter on a product page who talks without covering the product in a video frame.</span></li>
+      <li><b>Courses</b><span>A teacher in the corner of the lesson, over the slides instead of beside them.</span></li>
+      <li><b>Streams</b><span>A webcam cut-out with no green screen and no rectangle.</span></li>
+    </ul>
+  </section>
+
+  <section id="how">
+    <div class="split">
+      <div>
+        <p class="mono">How it works</p>
+        <h2>One ordinary video file carries its own outline.</h2>
+        <p>Each frame holds two pictures: the colour image on top and a black and white outline of the figure underneath. The player reads both and draws only what the outline allows.</p>
+        <p>Because it is a plain H.264 MP4, it plays where transparent video formats do not, including iPhone.</p>
+      </div>
+      <ul class="facts">
+        <li><span class="mono">Script</span><span>12 KB, no other libraries</span></li>
+        <li><span class="mono">Clip</span><span>One MP4, picture and outline together</span></li>
+        <li><span class="mono">Outline</span><span>Made in the browser by a person-finding model, or offline for a sharper edge</span></li>
+        <li><span class="mono">Privacy</span><span>Conversion and live camera run on the device; nothing is sent to a server</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="demos">
+    <p class="mono">The build, step by step</p>
+    <h2>Five working demos.</h2>
+    <ul class="facts">
+      <li><span class="mono">Step 1</span><a href="step1/">A clip with no box, over text and images</a></li>
+      <li><span class="mono">Step 2</span><a href="step2/">Any clip cut out live in the browser</a></li>
+      <li><span class="mono">Step 3</span><a href="step3/">The embed, with settings and a live snippet</a></li>
+      <li><span class="mono">Step 4</span><a href="step4/">The converter</a></li>
+      <li><span class="mono">Step 5</span><a href="step5/">Live webcam</a></li>
+    </ul>
+  </section>
+
+  <section>
+    <div class="license">
+      <div>
+        <p class="mono">Licensing</p>
+        <h2>Want this on your platform?</h2>
+        <p>Shaped Player is available to license for sites, apps and streaming tools. Get in touch through the project's GitHub page.</p>
+      </div>
+      <a class="text-link" href="https://github.com/eyeoverthink/Shaped-player">github.com/eyeoverthink/Shaped-player</a>
+    </div>
+  </section>
+
+  <footer>
+    <a href="https://github.com/eyeoverthink/Shaped-player">Source on GitHub</a>
+    <a href="#top">Back to top</a>
+  </footer>
+</div>
+
+<script src="step3/shaped-player.js"></script>
+<script>
+(function () {
+  var btn = document.getElementById("copy"), out = document.getElementById("copied"), code = document.getElementById("snippet");
+  btn.addEventListener("click", function () {
+    function manual() { var r = document.createRange(); r.selectNodeContents(code); var s = window.getSelection(); s.removeAllRanges(); s.addRange(r); out.textContent = "Selected"; }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(code.textContent).then(function () { out.textContent = "Copied"; }, manual); else manual();
+  });
+})();
+</script>
+</body>
+</html>

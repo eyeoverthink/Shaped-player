@@ -10,7 +10,7 @@ A video player with no box around it: the video's edge follows the person, and e
 - `step4/` is the converter: choose any clip, and it saves a stacked clip the embed can play.
 - `step5/` is the live webcam, cut out in real time.
 - `pipeline/` holds the two scripts that made the step 1 clip from a phone recording.
-- `index.html` links to all five steps.
+- `index.html` is the showcase home page. It uses the embed itself and links to all five steps.
 
 Steps 4 and 5 load the model files from `step2/` and the embed from `step3/`, so keep the folders together.
 
