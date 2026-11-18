@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shaped Player Step 5</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: one reading column of ordinary page content; the figure floats above it, anchored bottom right, and can be dragged anywhere. */
+:root {
+  --bg: #0B0B0F;
+  --panel: #151318;
+  --line: rgba(255, 255, 255, 0.07);
+  --ink: #E8E6EA;
+  --muted: #8A8792;
+  --accent: #C2185B;
+  --accent-hover: #D6336C;
+  --secondary: #1A2238;
+  --font-ui: "Geist", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --radius: 12px;
+  color-scheme: dark;
+}
+:root[data-bg="paper"] {
+  --bg: #ECE8E1;
+  --panel: #F8F6F2;
+  --line: rgba(20, 16, 24, 0.12);
+  --ink: #17161A;
+  --muted: #625E69;
+  --secondary: #DCD6CB;
+  color-scheme: light;
+}
+:root[data-bg="grid"] {
+  --bg: #0E1730;
+  --panel: #152044;
+  --line: rgba(160, 190, 255, 0.16);
+  --ink: #E9EEFB;
+  --muted: #93A0C4;
+  --secondary: #1C2B5C;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 1.6;
+  font-weight: 450;
+  transition: background-color .25s ease, color .25s ease;
+  -webkit-text-size-adjust: 100%;
+}
+:root[data-bg="grid"] body {
+  background-image:
+    linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+/* ---------- control bar ---------- */
+.bar {
+  position: sticky; top: 0; z-index: 30;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px;
+  padding: 10px 16px;
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+  border-bottom: 1px solid var(--line);
+}
+.bar .group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.bar .spacer { flex: 1 1 auto; }
+button, .swatch {
+  font: 500 13px/1 var(--font-ui);
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 9px 12px;
+  min-height: 36px;
+  cursor: pointer;
+}
+button:hover { border-color: color-mix(in srgb, var(--ink) 30%, transparent); }
+button:focus-visible, .swatch:focus-visible, input:focus-visible { outline: 2px solid var(--accent-hover); outline-offset: 2px; }
+button.primary { background: var(--accent); border-color: transparent; color: #fff; }
+button.primary:hover { background: var(--accent-hover); }
+button[aria-pressed="true"]:not(.primary) { border-color: color-mix(in srgb, var(--ink) 55%, transparent); }
+.swatches { display: flex; gap: 6px; }
+.swatch { width: 36px; padding: 0; position: relative; }
+.swatch::after { content: ""; position: absolute; inset: 7px; border-radius: 6px; background: var(--sw); border: 1px solid rgba(128,128,128,.45); }
+.swatch[aria-pressed="true"] { border-color: color-mix(in srgb, var(--ink) 60%, transparent); }
+.size { display: flex; align-items: center; gap: 8px; font: 500 11px/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.size input { width: 96px; accent-color: var(--accent); }
+.readout {
+  flex: 1 0 100%;
+  font: 400 11px/1.4 var(--font-mono); letter-spacing: .08em; text-transform: uppercase;
+  color: var(--muted); font-variant-numeric: tabular-nums;
+}
+
+/* ---------- page content ---------- */
+main { max-width: 680px; margin: 0 auto; padding: 28px 16px 62vh; display: flex; flex-direction: column; gap: 28px; }
+.eyebrow { font: 500 11px/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 12px; }
+h1 { font-size: clamp(30px, 8vw, 46px); line-height: 1.05; letter-spacing: -0.02em; font-weight: 600; margin: 0 0 14px; text-wrap: balance; }
+h2 { font-size: 19px; line-height: 1.25; font-weight: 600; margin: 0 0 8px; text-wrap: balance; }
+p { margin: 0 0 12px; max-width: 62ch; }
+p:last-child { margin-bottom: 0; }
+.lede { font-size: 17px; color: var(--ink); }
+.muted { color: var(--muted); }
+.card {
+  background: var(--panel); border-radius: var(--radius); padding: 18px;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.28), 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+}
+.tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.tile { border-radius: var(--radius); overflow: hidden; background: var(--panel); margin: 0; }
+.tile img, .tile .art { display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: cover; object-position: 50% 20%; }
+.tile figcaption { font: 400 11px/1.4 var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 9px 12px 11px; }
+.art.sunset { background: radial-gradient(circle at 70% 62%, #FFD27A 0 9%, transparent 9.5%), linear-gradient(180deg, #2B2350 0%, #8B3A62 48%, #E8734A 72%, #2A1B2E 72.2%, #17121C 100%); }
+.art.bars { background: var(--secondary); display: flex; align-items: flex-end; gap: 6%; padding: 12% 10% 0; }
+.art.bars i { flex: 1; background: color-mix(in srgb, var(--ink) 70%, transparent); border-radius: 4px 4px 0 0; }
+.steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.steps li { display: grid; grid-template-columns: 74px 1fr; gap: 12px; align-items: baseline; padding: 12px 0; border-top: 1px solid var(--line); }
+.steps li:first-child { border-top: 0; padding-top: 0; }
+.steps .tag { font: 500 11px/1.5 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.steps .tag.done { color: var(--ink); }
+.filler p { color: var(--muted); }
+
+/* ---------- the shaped player ---------- */
+#stage {
+  position: fixed; right: 4px; bottom: 0; z-index: 20;
+  width: min(58vw, 360px);
+  pointer-events: none;            /* clicks pass through everything that is not the figure */
+  will-change: transform;
+}
+#fig { display: block; width: 100%; height: auto; }
+#stage.boxed #fig { outline: 2px dashed var(--accent-hover); outline-offset: -2px; }
+#stage .boxlabel {
+  display: none; position: absolute; left: 8px; top: 8px;
+  font: 500 11px/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase;
+  background: var(--accent); color: #fff; padding: 6px 8px; border-radius: 6px;
+}
+#stage.boxed .boxlabel { display: block; }
+#cam { position: fixed; left: 0; top: 0; width: 2px; height: 2px; opacity: 0; pointer-events: none; }
+.notice { display: none; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; }
+.notice.show { display: block; }
+@media (prefers-reduced-motion: reduce) { body { transition: none; } }
+
+/* ---------- step 5 additions ---------- */
+.check { display: flex; align-items: center; gap: 8px; font: 500 13px/1.2 var(--font-ui); color: var(--ink); min-height: 36px; }
+.check input { width: 18px; height: 18px; accent-color: var(--accent); }
+button:disabled { opacity: .45; cursor: not-allowed; }
+#stage[hidden] { display: none; }
+.live { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); margin-right: 8px; vertical-align: 1px; }
+.live.on { background: var(--accent-hover); box-shadow: 0 0 12px rgba(194, 24, 91, .6); }
+</style>
+</head>
+<body>
+
+<div class="bar" role="toolbar" aria-label="Camera controls">
+  <div class="group">
+    <button id="btn-cam" class="primary" type="button" disabled>Start camera</button>
+    <button id="btn-box" type="button" aria-pressed="false">Show the box</button>
+    <label class="check" for="mirror"><input id="mirror" type="checkbox" checked> Mirror</label>
+  </div>
+  <div class="spacer"></div>
+  <div class="group">
+    <label class="size" for="size">Size <input id="size" type="range" min="40" max="130" value="100"></label>
+    <label class="size" for="trim">Trim bottom <input id="trim" type="range" min="0" max="45" value="0"></label>
+    <div class="swatches" role="group" aria-label="Page background">
+      <button class="swatch" type="button" data-bg="night" aria-pressed="true" aria-label="Night background" style="--sw:#0B0B0F"></button>
+      <button class="swatch" type="button" data-bg="paper" aria-pressed="false" aria-label="Paper background" style="--sw:#ECE8E1"></button>
+      <button class="swatch" type="button" data-bg="grid" aria-pressed="false" aria-label="Blueprint background" style="--sw:#27408F"></button>
+    </div>
+  </div>
+  <div class="readout" id="readout" aria-live="polite"><span class="live" id="dot"></span><span id="readout-text">Starting the outline model</span></div>
+</div>
+
+<main>
+  <header>
+    <p class="eyebrow">Shaped player · Step 5 of 5</p>
+    <h1>You, live, with no box.</h1>
+    <p class="lede">Press <strong>Start camera</strong>. Your webcam picture is cut out as it arrives and placed on this page as a shape you can drag around. The picture never leaves your device.</p>
+  </header>
+
+  <div class="notice" id="notice"></div>
+
+  <section class="card">
+    <h2>What happens when you start</h2>
+    <p>Your browser asks for permission to use the camera. After you allow it, each frame goes through the same person-finding model as step 2, and only you are drawn.</p>
+    <p>Nothing is recorded or sent anywhere. Press <strong>Stop camera</strong> and the camera light goes off.</p>
+  </section>
+
+  <section class="tiles" aria-label="Sample content to stand in front of">
+    <figure class="tile">
+      <div class="art sunset" role="img" aria-label="Sample picture of a sunset"></div>
+      <figcaption>Stand in front of a picture</figcaption>
+    </figure>
+    <figure class="tile">
+      <div class="art bars" role="img" aria-label="Sample bar chart"><i style="height:38%"></i><i style="height:61%"></i><i style="height:47%"></i><i style="height:82%"></i><i style="height:70%"></i></div>
+      <figcaption>Or present a chart</figcaption>
+    </figure>
+  </section>
+
+  <section class="card">
+    <h2>Getting a clean outline</h2>
+    <p>Face a window or a lamp so you are brighter than the room behind you. A plain wall helps but is not required. If your desk or chair gets picked up, use <strong>Trim bottom</strong>.</p>
+    <p><strong>Mirror</strong> flips the picture so it moves the way a mirror does. Turn it off if you are holding up something with writing on it.</p>
+  </section>
+
+  <section class="card">
+    <h2>Build order</h2>
+    <ol class="steps">
+      <li><span class="tag done">1 · Done</span><span>One clip playing over text and images with no visible rectangle.</span></li>
+      <li><span class="tag done">2 · Done</span><span>Background removal inside the browser.</span></li>
+      <li><span class="tag done">3 · Done</span><span>A shaped embed: one snippet for any website.</span></li>
+      <li><span class="tag done">4 · Done</span><span>A converter, so anyone can make a clip for the embed.</span></li>
+      <li><span class="tag done">5 · This page</span><span>Live webcam, cut out in real time.</span></li>
+    </ol>
+  </section>
+</main>
+
+<div id="stage" hidden>
+  <canvas id="fig" width="640" height="480" aria-label="Your camera, cut out live" role="img"></canvas>
+  <span class="boxlabel">Ordinary webcam box</span>
+</div>
+<video id="cam" muted playsinline webkit-playsinline autoplay></video>
+
+<script>
+(function () {
+  var BASE = "../step2/";
+  var PACKED = { "selfie_segmentation.binarypb": "selfie_segmentation_binarypb.txt", "selfie_segmentation.tflite": "selfie_segmentation_tflite.txt" };
+  var realFetch = window.fetch.bind(window);
+  window.fetch = function (input, init) {
+    var url = typeof input === "string" ? input : (input && input.url) || "";
+    var name = url.split("/").pop().split("?")[0];
+    if (!PACKED[name]) return realFetch(input, init);
+    return realFetch(BASE + PACKED[name]).then(function (r) { if (!r.ok) throw new Error("Missing model file " + PACKED[name]); return r.text(); }).then(function (t) {
+      var bin = atob(t.trim()), bytes = new Uint8Array(bin.length);
+      for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      return new Response(bytes, { status: 200, headers: { "Content-Type": "application/octet-stream" } });
+    });
+  };
+})();
+</script>
+<script src="../step2/selfie_segmentation.js"></script>
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var video = $("cam"), canvas = $("fig"), ctx = canvas.getContext("2d"), stage = $("stage");
+  var readout = $("readout-text"), dot = $("dot"), notice = $("notice"), btnCam = $("btn-cam"), btnBox = $("btn-box");
+  var W = 0, H = 0, boxed = false, trim = 0, mirror = true, ready = false, failed = false, busy = false, frames = 0;
+  var stream = null, msAvg = 0, fpsAvg = 0, lastStamp = 0, t0 = 0;
+
+  function say(msg) { notice.textContent = msg; notice.classList.add("show"); }
+  function unsay() { notice.classList.remove("show"); }
+
+  var canCamera = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+  if (!canCamera) {
+    readout.textContent = "Camera not available here";
+    say(window.isSecureContext === false
+      ? "Browsers only allow the camera on pages served over https. Open this page from an https address."
+      : "This viewer does not allow pages to use the camera. Open this page in a normal browser tab, served over https.");
+  }
+
+  /* ---------- outline model ---------- */
+  var seg = null;
+  function fail(e) { failed = true; btnCam.disabled = true; readout.textContent = "Outline model did not start"; say("This browser could not start the outline model, so the live cut-out cannot run here. (" + (e && e.message ? e.message : e) + ")"); }
+  try {
+    seg = new SelfieSegmentation({ locateFile: function (f) { return "../step2/" + f; } });
+    seg.setOptions({ modelSelection: 0, selfieMode: true }); seg.onResults(onResults);
+    seg.initialize().then(function () { ready = true; if (canCamera) { btnCam.disabled = false; readout.textContent = "Ready. Press Start camera"; } }).catch(fail);
+  } catch (e) { fail(e); }
+
+  function size() {
+    var vw = video.videoWidth, vh = video.videoHeight; if (!vw || !vh) return false;
+    var s = Math.min(1, 640 / vw); W = Math.round(vw * s); H = Math.round(vh * s);
+    canvas.width = W; canvas.height = Math.max(8, Math.round(H * (1 - trim))); return true;
+  }
+  function onResults(r) {
+    var dt = performance.now() - t0; msAvg = msAvg ? msAvg * 0.9 + dt * 0.1 : dt;
+    ctx.save(); ctx.clearRect(0, 0, W, canvas.height);
+    if (!boxed) { ctx.drawImage(r.segmentationMask, 0, 0, W, H); ctx.globalCompositeOperation = "source-in"; }
+    ctx.drawImage(r.image, 0, 0, W, H); ctx.restore();
+    busy = false; frames++;
+    var now = performance.now(); if (lastStamp) { var f = 1000 / (now - lastStamp); fpsAvg = fpsAvg ? fpsAvg * 0.9 + f * 0.1 : f; } lastStamp = now;
+    if (frames % 8 === 1) { refreshHit(); readout.textContent = "Live · " + W + " × " + canvas.height + " px · outline " + msAvg.toFixed(0) + " ms a frame · " + fpsAvg.toFixed(0) + " fps"; }
+  }
+  function tick() {
+    requestAnimationFrame(tick);
+    if (!stream || failed || !ready || busy || video.readyState < 2) return;
+    if (!W && !size()) return;
+    busy = true; t0 = performance.now();
+    seg.send({ image: video }).catch(function (e) { busy = false; fail(e); });
+  }
+  requestAnimationFrame(tick);
+
+  /* ---------- camera ---------- */
+  function stop() {
+    if (stream) stream.getTracks().forEach(function (t) { t.stop(); });
+    stream = null; video.srcObject = null; stage.hidden = true; dot.classList.remove("on");
+    btnCam.textContent = "Start camera"; readout.textContent = "Camera off"; W = 0; frames = 0; msAvg = 0; fpsAvg = 0; lastStamp = 0;
+  }
+  btnCam.addEventListener("click", function () {
+    if (stream) { stop(); return; }
+    unsay(); btnCam.disabled = true; readout.textContent = "Waiting for camera permission";
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } }, audio: false }).then(function (s) {
+      stream = s; video.srcObject = s; var p = video.play(); if (p && p.catch) p.catch(function () {});
+      stage.hidden = false; dot.classList.add("on"); btnCam.textContent = "Stop camera"; btnCam.disabled = false; readout.textContent = "Camera on";
+      s.getVideoTracks()[0].addEventListener("ended", stop);
+    }).catch(function (e) {
+      btnCam.disabled = false; readout.textContent = "Camera not started";
+      var n = e && e.name;
+      say(n === "NotAllowedError" || n === "SecurityError" ? "Camera permission was not given. Allow the camera for this page in your browser's site settings, then press Start camera again."
+        : n === "NotFoundError" || n === "OverconstrainedError" ? "No camera was found on this device."
+        : n === "NotReadableError" ? "The camera is in use by another app. Close that app, then press Start camera again."
+        : "The camera could not be started. (" + (e && e.message ? e.message : n) + ")");
+    });
+  });
+  $("mirror").addEventListener("change", function () { mirror = this.checked; if (seg) seg.setOptions({ modelSelection: 0, selfieMode: mirror }); });
+
+  /* ---------- hit map ---------- */
+  var hit = document.createElement("canvas"), hctx = hit.getContext("2d", { willReadFrequently: true }), hitData = null; hit.width = 48; hit.height = 40;
+  function refreshHit() {
+    try { hit.height = Math.max(8, Math.round(48 * canvas.height / canvas.width)); hctx.clearRect(0, 0, hit.width, hit.height); hctx.drawImage(canvas, 0, 0, hit.width, hit.height); hitData = hctx.getImageData(0, 0, hit.width, hit.height).data; }
+    catch (e) { hitData = null; }
+  }
+
+  /* ---------- controls ---------- */
+  btnBox.addEventListener("click", function () {
+    boxed = !boxed; stage.classList.toggle("boxed", boxed);
+    btnBox.textContent = boxed ? "Hide the box" : "Show the box"; btnBox.setAttribute("aria-pressed", String(boxed));
+  });
+  var baseWidth = null, sizeInput = $("size");
+  sizeInput.addEventListener("input", function () {
+    if (baseWidth === null) { var was = stage.hidden; stage.hidden = false; baseWidth = stage.getBoundingClientRect().width; stage.hidden = was; }
+    stage.style.width = Math.round(baseWidth * sizeInput.value / 100) + "px";
+  });
+  $("trim").addEventListener("input", function () { trim = this.value / 100; W = 0; });
+  Array.prototype.forEach.call(document.querySelectorAll(".swatch"), function (b) {
+    b.addEventListener("click", function () {
+      var v = b.getAttribute("data-bg");
+      if (v === "night") document.documentElement.removeAttribute("data-bg"); else document.documentElement.setAttribute("data-bg", v);
+      Array.prototype.forEach.call(document.querySelectorAll(".swatch"), function (o) { o.setAttribute("aria-pressed", String(o === b)); });
+    });
+  });
+
+  /* ---------- dragging, only when the touch lands on you ---------- */
+  var tx = 0, ty = 0, drag = null;
+  function onFigure(x, y) {
+    if (stage.hidden) return false;
+    var r = canvas.getBoundingClientRect();
+    if (x < r.left || x > r.right || y < r.top || y > r.bottom) return false;
+    if (boxed || !hitData) return true;
+    var u = Math.min(hit.width - 1, Math.floor((x - r.left) / r.width * hit.width)), v = Math.min(hit.height - 1, Math.floor((y - r.top) / r.height * hit.height));
+    return hitData[(v * hit.width + u) * 4 + 3] > 90;
+  }
+  function start(x, y) { drag = { x: x, y: y, tx: tx, ty: ty }; }
+  function move(x, y) {
+    if (!drag) return;
+    var r = stage.getBoundingClientRect(), nx = drag.tx + (x - drag.x), ny = drag.ty + (y - drag.y), left = r.left - tx + nx, top = r.top - ty + ny;
+    nx += Math.max(0, -r.width * 0.66 - left) - Math.max(0, left - (window.innerWidth - r.width * 0.34));
+    ny += Math.max(0, -r.height * 0.5 - top) - Math.max(0, top - (window.innerHeight - r.height * 0.4));
+    tx = nx; ty = ny; stage.style.transform = "translate(" + tx + "px," + ty + "px)";
+  }
+  function end() { drag = null; document.body.style.cursor = ""; }
+  document.addEventListener("mousedown", function (e) { if (e.button === 0 && onFigure(e.clientX, e.clientY)) { start(e.clientX, e.clientY); e.preventDefault(); } });
+  document.addEventListener("mousemove", function (e) { if (drag) { move(e.clientX, e.clientY); document.body.style.cursor = "grabbing"; } else { document.body.style.cursor = onFigure(e.clientX, e.clientY) ? "grab" : ""; } });
+  document.addEventListener("mouseup", end);
+  document.addEventListener("touchstart", function (e) { var t = e.touches[0]; if (e.touches.length === 1 && onFigure(t.clientX, t.clientY)) { start(t.clientX, t.clientY); e.preventDefault(); } }, { passive: false });
+  document.addEventListener("touchmove", function (e) { if (drag) { var t = e.touches[0]; move(t.clientX, t.clientY); e.preventDefault(); } }, { passive: false });
+  document.addEventListener("touchend", end); document.addEventListener("touchcancel", end);
+})();
+</script>
+</body>
+</html>

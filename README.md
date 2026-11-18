@@ -7,8 +7,12 @@ A video player with no box around it: the video's edge follows the person, and e
 - `step1/` plays one clip over text and images with no visible rectangle. The outline was made ahead of time and is stored inside the video file.
 - `step2/` cuts the person out of any clip live in the browser. Choose your own file; it stays on your device.
 - `step3/` is the embed: `shaped-player.js` plus a demo page. One script tag and one `<shaped-player>` tag put the figure on any page.
+- `step4/` is the converter: choose any clip, and it saves a stacked clip the embed can play.
+- `step5/` is the live webcam, cut out in real time.
 - `pipeline/` holds the two scripts that made the step 1 clip from a phone recording.
-- `index.html` links to all three steps.
+- `index.html` links to all five steps.
+
+Steps 4 and 5 load the model files from `step2/` and the embed from `step3/`, so keep the folders together.
 
 ## Run it
 
@@ -50,6 +54,18 @@ From script: `play()`, `pause()`, the `muted` property, and a `shapedready` even
 
 The clip must be served from the same site as the page, or with CORS headers, because the browser has to read its pixels.
 
+## Making a clip in the browser (step 4)
+
+Open `step4/`, choose a video, and press Convert. The clip plays through once while the page records colour on top and the outline underneath into one file, then the result plays through the real embed so the outline can be checked before saving.
+
+- It records in real time, so a 30 second clip takes 30 seconds, and the page must stay on screen.
+- Smoothness depends on the device: the page reports the frames per second it managed.
+- The file is MP4 where the browser can record MP4 (Safari, recent Chrome), otherwise WebM, which iPhones cannot play.
+
+## Live webcam (step 5)
+
+Open `step5/` and press Start camera. Browsers only allow the camera on https pages or on localhost, so use GitHub Pages or the local server above. Nothing is recorded or sent anywhere.
+
 ## Rebuilding the step 1 clip
 
     pip install "rembg[cpu]" opencv-python-headless numpy pillow
@@ -65,9 +81,10 @@ The crop and trim values in those commands and in `compose.py` are specific to t
 1. Done: one clip with no visible rectangle.
 2. Done: background removal inside the browser.
 3. Done: a shaped embed, one snippet that drops the figure onto any website.
-4. Next: live webcam, cut out in real time.
+4. Done: a converter that turns any clip into the stacked format in the browser.
+5. Done: live webcam, cut out in real time.
 
-Not built yet: a converter that turns any clip into the stacked format in the browser. Today that format comes from the `pipeline/` scripts.
+Known limits: the browser outline (steps 2, 4, 5) is softer than the offline one in step 1, and the converter records in real time instead of frame by frame.
 
 ## Third-party files
 

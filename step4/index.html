@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shaped Player Step 4</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: one reading column of ordinary page content; the figure floats above it, anchored bottom right, and can be dragged anywhere. */
+:root {
+  --bg: #0B0B0F;
+  --panel: #151318;
+  --line: rgba(255, 255, 255, 0.07);
+  --ink: #E8E6EA;
+  --muted: #8A8792;
+  --accent: #C2185B;
+  --accent-hover: #D6336C;
+  --secondary: #1A2238;
+  --font-ui: "Geist", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --radius: 12px;
+  color-scheme: dark;
+}
+:root[data-bg="paper"] {
+  --bg: #ECE8E1;
+  --panel: #F8F6F2;
+  --line: rgba(20, 16, 24, 0.12);
+  --ink: #17161A;
+  --muted: #625E69;
+  --secondary: #DCD6CB;
+  color-scheme: light;
+}
+:root[data-bg="grid"] {
+  --bg: #0E1730;
+  --panel: #152044;
+  --line: rgba(160, 190, 255, 0.16);
+  --ink: #E9EEFB;
+  --muted: #93A0C4;
+  --secondary: #1C2B5C;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 1.6;
+  font-weight: 450;
+  transition: background-color .25s ease, color .25s ease;
+  -webkit-text-size-adjust: 100%;
+}
+:root[data-bg="grid"] body {
+  background-image:
+    linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+/* ---------- control bar ---------- */
+.bar {
+  position: sticky; top: 0; z-index: 30;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px;
+  padding: 10px 16px;
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+  border-bottom: 1px solid var(--line);
+}
+.bar .group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.bar .spacer { flex: 1 1 auto; }
+button, .swatch {
+  font: 500 13px/1 var(--font-ui);
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 9px 12px;
+  min-height: 36px;
+  cursor: pointer;
+}
+button:hover { border-color: color-mix(in srgb, var(--ink) 30%, transparent); }
+button:focus-visible, .swatch:focus-visible, input:focus-visible { outline: 2px solid var(--accent-hover); outline-offset: 2px; }
+button.primary { background: var(--accent); border-color: transparent; color: #fff; }
+button.primary:hover { background: var(--accent-hover); }
+button[aria-pressed="true"]:not(.primary) { border-color: color-mix(in srgb, var(--ink) 55%, transparent); }
+.swatches { display: flex; gap: 6px; }
+.swatch { width: 36px; padding: 0; position: relative; }
+.swatch::after { content: ""; position: absolute; inset: 7px; border-radius: 6px; background: var(--sw); border: 1px solid rgba(128,128,128,.45); }
+.swatch[aria-pressed="true"] { border-color: color-mix(in srgb, var(--ink) 60%, transparent); }
+.size { display: flex; align-items: center; gap: 8px; font: 500 11px/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.size input { width: 96px; accent-color: var(--accent); }
+.readout {
+  flex: 1 0 100%;
+  font: 400 11px/1.4 var(--font-mono); letter-spacing: .08em; text-transform: uppercase;
+  color: var(--muted); font-variant-numeric: tabular-nums;
+}
+
+/* ---------- page content ---------- */
+main { max-width: 680px; margin: 0 auto; padding: 28px 16px 62vh; display: flex; flex-direction: column; gap: 28px; }
+.eyebrow { font: 500 11px/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 12px; }
+h1 { font-size: clamp(30px, 8vw, 46px); line-height: 1.05; letter-spacing: -0.02em; font-weight: 600; margin: 0 0 14px; text-wrap: balance; }
+h2 { font-size: 19px; line-height: 1.25; font-weight: 600; margin: 0 0 8px; text-wrap: balance; }
+p { margin: 0 0 12px; max-width: 62ch; }
+p:last-child { margin-bottom: 0; }
+.lede { font-size: 17px; color: var(--ink); }
+.muted { color: var(--muted); }
+.card {
+  background: var(--panel); border-radius: var(--radius); padding: 18px;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.28), 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+}
+.tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.tile { border-radius: var(--radius); overflow: hidden; background: var(--panel); margin: 0; }
+.tile img, .tile .art { display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: cover; object-position: 50% 20%; }
+.tile figcaption { font: 400 11px/1.4 var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 9px 12px 11px; }
+.art.sunset { background: radial-gradient(circle at 70% 62%, #FFD27A 0 9%, transparent 9.5%), linear-gradient(180deg, #2B2350 0%, #8B3A62 48%, #E8734A 72%, #2A1B2E 72.2%, #17121C 100%); }
+.art.bars { background: var(--secondary); display: flex; align-items: flex-end; gap: 6%; padding: 12% 10% 0; }
+.art.bars i { flex: 1; background: color-mix(in srgb, var(--ink) 70%, transparent); border-radius: 4px 4px 0 0; }
+.steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.steps li { display: grid; grid-template-columns: 74px 1fr; gap: 12px; align-items: baseline; padding: 12px 0; border-top: 1px solid var(--line); }
+.steps li:first-child { border-top: 0; padding-top: 0; }
+.steps .tag { font: 500 11px/1.5 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.steps .tag.done { color: var(--ink); }
+.filler p { color: var(--muted); }
+
+
+/* ---------- step 3 additions ---------- */
+main { padding-top: 36px; }
+pre { margin: 0 0 12px; padding: 14px; overflow-x: auto; background: var(--bg); border: 1px solid var(--line); border-radius: 10px;
+      font: 400 12.5px/1.6 var(--font-mono); color: var(--ink); white-space: pre; }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+.settings { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px 18px; }
+.field { display: flex; flex-direction: column; gap: 8px; font: 500 11px/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.field select, .field input[type="range"] { width: 100%; }
+select { font: 500 14px/1 var(--font-ui); color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px; min-height: 38px; }
+.check { flex-direction: row; align-items: center; gap: 10px; text-transform: none; letter-spacing: 0; font: 500 14px/1.2 var(--font-ui); color: var(--ink); min-height: 38px; }
+.check input { width: 18px; height: 18px; accent-color: var(--accent); }
+input[type="range"] { accent-color: var(--accent); }
+.status { font: 400 11px/1.4 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.mock { border-radius: var(--radius); overflow: hidden; background: #F4EFE6; color: #2A2320; box-shadow: 0 18px 44px rgba(0,0,0,.28); }
+.mock .nav { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 16px; background: #2A2320; color: #F4EFE6; font: 600 14px/1 var(--font-ui); }
+.mock .nav span:last-child { font-weight: 450; opacity: .75; font-size: 13px; }
+.mock .body { padding: 20px 16px 24px; display: flex; flex-direction: column; gap: 10px; }
+.mock h3 { margin: 0; font-size: 22px; line-height: 1.15; letter-spacing: -0.01em; }
+.mock p { margin: 0; color: #5A4E48; max-width: 46ch; }
+.mock .cta { align-self: flex-start; margin-top: 6px; background: #2A2320; color: #F4EFE6; border-radius: 10px; padding: 10px 14px; font: 500 14px/1 var(--font-ui); }
+.mock .kiln { height: 120px; border-radius: 10px; background: linear-gradient(135deg, #C96F4A 0%, #E2A66B 55%, #F0D9A8 100%); }
+
+/* ---------- step 4 additions ---------- */
+.preview { position: relative; border-radius: 10px; overflow: hidden; border: 1px dashed var(--line); margin: 0 0 14px;
+  background-image: linear-gradient(45deg, var(--line) 25%, transparent 25%, transparent 75%, var(--line) 75%), linear-gradient(45deg, var(--line) 25%, transparent 25%, transparent 75%, var(--line) 75%);
+  background-size: 20px 20px; background-position: 0 0, 10px 10px; }
+.preview canvas { display: block; width: 100%; max-width: 420px; height: auto; margin: 0 auto; }
+#src { position: fixed; left: 0; top: 0; width: 2px; height: 2px; opacity: 0; pointer-events: none; }
+progress { width: 100%; height: 10px; accent-color: var(--accent); margin: 0 0 10px; }
+.facts { list-style: none; margin: 0 0 14px; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
+.facts li { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.facts b { display: block; font: 500 11px/1.2 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+button:disabled { opacity: .45; cursor: not-allowed; }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <p class="eyebrow">Shaped player · Step 4 of 5</p>
+    <h1>Turn any clip into a shaped clip.</h1>
+    <p class="lede">Choose a video. This page cuts the person out, then saves one file that the embed from step 3 can play on any website. The video stays on your device.</p>
+    <p class="status" id="status" aria-live="polite">Starting the outline model</p>
+  </header>
+
+  <div class="notice" id="notice"></div>
+
+  <section class="card">
+    <h2>1 · Choose a clip</h2>
+    <p>The sample clip is loaded so you can try this straight away. The checkered area is what will be see-through.</p>
+    <div class="preview"><canvas id="view" width="560" height="496" role="img" aria-label="Preview of the cut-out clip"></canvas></div>
+    <div class="settings">
+      <div class="field"><span>Clip</span><button id="btn-pick" type="button">Choose a clip</button><input id="file" type="file" accept="video/*" hidden></div>
+      <label class="field" for="trim">Trim bottom <span id="trim-out">0%</span>
+        <input id="trim" type="range" min="0" max="45" value="0">
+      </label>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>2 · Convert</h2>
+    <p>The clip plays through once while it is recorded, so this takes as long as the clip itself. Keep this page open and on screen until it finishes.</p>
+    <progress id="bar" max="1" value="0" aria-label="Conversion progress"></progress>
+    <div class="row">
+      <button id="btn-convert" class="primary" type="button" disabled>Convert the clip</button>
+      <button id="btn-stop" type="button" hidden>Stop here</button>
+      <span class="muted" id="progress-text" aria-live="polite"></span>
+    </div>
+  </section>
+
+  <section class="card" id="result" hidden>
+    <h2>3 · Your shaped clip</h2>
+    <p>The converted clip is now playing in the corner through the real embed. Drag it to check the outline.</p>
+    <ul class="facts">
+      <li><b>Format</b><span id="f-format"></span></li>
+      <li><b>Size</b><span id="f-size"></span></li>
+      <li><b>Length</b><span id="f-length"></span></li>
+      <li><b>Sound</b><span id="f-sound"></span></li>
+      <li><b>Smoothness</b><span id="f-fps"></span></li>
+    </ul>
+    <p id="f-note" class="muted"></p>
+    <div class="row">
+      <button id="btn-save" type="button">Save the clip</button>
+      <span class="muted" id="save-text" aria-live="polite"></span>
+    </div>
+    <p style="margin-top:14px">Put the saved file on your site next to <strong>shaped-player.js</strong> and paste:</p>
+    <pre><code id="snippet"></code></pre>
+  </section>
+
+  <section class="card">
+    <h2>Build order</h2>
+    <ol class="steps">
+      <li><span class="tag done">1 · Done</span><span>One clip playing over text and images with no visible rectangle.</span></li>
+      <li><span class="tag done">2 · Done</span><span>Background removal inside the browser.</span></li>
+      <li><span class="tag done">3 · Done</span><span>A shaped embed: one snippet for any website.</span></li>
+      <li><span class="tag done">4 · This page</span><span>A converter, so anyone can make a clip for the embed.</span></li>
+      <li><span class="tag">5 · Next</span><span>Live webcam, cut out in real time for streams.</span></li>
+    </ol>
+  </section>
+</main>
+
+<video id="src" src="../step2/sample.mp4" muted loop playsinline webkit-playsinline preload="auto" autoplay></video>
+
+<script>
+/* Some hosts only serve common file types. Two of the model's binary files are stored as base64 text; this hands them to the model loader as binary. */
+(function () {
+  var BASE = "../step2/";
+  var PACKED = { "selfie_segmentation.binarypb": "selfie_segmentation_binarypb.txt", "selfie_segmentation.tflite": "selfie_segmentation_tflite.txt" };
+  var realFetch = window.fetch.bind(window);
+  window.fetch = function (input, init) {
+    var url = typeof input === "string" ? input : (input && input.url) || "";
+    var name = url.split("/").pop().split("?")[0];
+    if (!PACKED[name]) return realFetch(input, init);
+    return realFetch(BASE + PACKED[name]).then(function (r) { if (!r.ok) throw new Error("Missing model file " + PACKED[name]); return r.text(); }).then(function (t) {
+      var bin = atob(t.trim()), bytes = new Uint8Array(bin.length);
+      for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      return new Response(bytes, { status: 200, headers: { "Content-Type": "application/octet-stream" } });
+    });
+  };
+})();
+</script>
+<script src="../step2/selfie_segmentation.js"></script>
+<script src="../step3/shaped-player.js"></script>
+<script>
+(function () {
+  "use strict";
+  var MODEL_BASE = "../step2/";
+  var $ = function (id) { return document.getElementById(id); };
+  var video = $("src"), view = $("view"), vctx = view.getContext("2d"), status = $("status"), notice = $("notice");
+  var pack = document.createElement("canvas"), pctx = pack.getContext("2d");          /* colour on top, outline underneath: this is what gets recorded */
+  var tmp = document.createElement("canvas"), tctx = tmp.getContext("2d");
+  var W = 0, H = 0, trim = 0, ready = false, failed = false, busy = false, dirty = true, frames = 0;
+  var clipName = "sample", convFrames = 0, converting = false, recorder = null, chunks = [], result = null, player = null;
+
+  function say(msg) { notice.textContent = msg; notice.classList.add("show"); }
+
+  /* ---------- outline model ---------- */
+  var seg = null;
+  function fail(e) {
+    failed = true; status.textContent = "Outline model did not start"; $("btn-convert").disabled = true;
+    say("This browser could not start the outline model, so clips cannot be converted here. (" + (e && e.message ? e.message : e) + ")");
+  }
+  try {
+    seg = new SelfieSegmentation({ locateFile: function (f) { return MODEL_BASE + f; } });
+    seg.setOptions({ modelSelection: 0 }); seg.onResults(onResults);
+    seg.initialize().then(function () { ready = true; status.textContent = "Ready"; $("btn-convert").disabled = false; }).catch(fail);
+  } catch (e) { fail(e); }
+
+  function size() {
+    var vw = video.videoWidth, vh = video.videoHeight; if (!vw || !vh) return false;
+    var s = Math.min(1, 560 / vw);
+    W = Math.round(vw * s / 2) * 2; H = Math.round(vh * s / 2) * 2;                 /* even numbers: video encoders need them */
+    view.width = W; view.height = H; pack.width = W; pack.height = H * 2; tmp.width = W; tmp.height = H;
+    return true;
+  }
+
+  function onResults(r) {
+    var keep = Math.round(H * (1 - trim));
+    /* outline as white on black */
+    tctx.globalCompositeOperation = "source-over"; tctx.clearRect(0, 0, W, H); tctx.drawImage(r.segmentationMask, 0, 0, W, H);
+    tctx.globalCompositeOperation = "source-in"; tctx.fillStyle = "#fff"; tctx.fillRect(0, 0, W, H);
+    tctx.globalCompositeOperation = "source-over"; tctx.clearRect(0, keep, W, H - keep);
+    /* packed frame */
+    pctx.drawImage(r.image, 0, 0, W, H);
+    pctx.fillStyle = "#000"; pctx.fillRect(0, H, W, H); pctx.drawImage(tmp, 0, H);
+    /* preview */
+    vctx.globalCompositeOperation = "source-over"; vctx.clearRect(0, 0, W, H); vctx.drawImage(tmp, 0, 0);
+    vctx.globalCompositeOperation = "source-in"; vctx.drawImage(r.image, 0, 0, W, H); vctx.globalCompositeOperation = "source-over";
+    busy = false; frames++; if (converting) convFrames++;
+    if (converting && video.duration) {
+      var f = Math.min(1, video.currentTime / video.duration); $("bar").value = f;
+      $("progress-text").textContent = Math.round(f * 100) + "% · " + video.currentTime.toFixed(1) + " of " + video.duration.toFixed(1) + " s";
+    }
+  }
+  function tick() {
+    requestAnimationFrame(tick);
+    if (video.readyState < 2 || failed || !ready || busy) return;
+    if (!W && !size()) return;
+    if (video.paused && !dirty) return;
+    dirty = false; busy = true;
+    seg.send({ image: video }).catch(function (e) { busy = false; fail(e); });
+  }
+  requestAnimationFrame(tick);
+
+  video.addEventListener("loadedmetadata", function () { W = 0; dirty = true; });
+  video.addEventListener("error", function () { say("That clip could not be played by this browser. MP4 files recorded on a phone work; some MOV and MKV files do not. Choose another clip."); });
+  function tryPlay() { var p = video.play(); if (p && p.catch) p.catch(function () {}); }
+  tryPlay();
+
+  /* ---------- choose + trim ---------- */
+  var lastUrl = null;
+  $("btn-pick").addEventListener("click", function () { if (!converting) $("file").click(); });
+  $("file").addEventListener("change", function () {
+    var f = this.files && this.files[0]; if (!f) return;
+    if (!failed) notice.classList.remove("show");
+    if (lastUrl) URL.revokeObjectURL(lastUrl); lastUrl = URL.createObjectURL(f);
+    clipName = f.name.replace(/\.[^.]+$/, "").replace(/[^A-Za-z0-9_-]+/g, "-").slice(0, 40) || "clip";
+    W = 0; frames = 0; video.loop = true; video.muted = true; video.src = lastUrl; video.load(); tryPlay();
+    status.textContent = "Loaded " + f.name;
+  });
+  $("trim").addEventListener("input", function () { trim = this.value / 100; $("trim-out").textContent = this.value + "%"; dirty = true; });
+
+  /* ---------- convert ---------- */
+  function pickType() {
+    var types = ['video/mp4;codecs="avc1.42E01E,mp4a.40.2"', 'video/mp4;codecs=avc1.42E01E', "video/mp4", "video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm"];
+    if (!window.MediaRecorder) return null;
+    for (var i = 0; i < types.length; i++) if (MediaRecorder.isTypeSupported(types[i])) return types[i];
+    return "";
+  }
+  var audioCtx = null, audioDest = null, audioWired = false;
+  function audioTrack() {                                   /* route the clip's sound to the recorder without playing it aloud */
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return null;
+      if (!audioCtx) { audioCtx = new AC(); audioDest = audioCtx.createMediaStreamDestination(); }
+      if (!audioWired) { audioCtx.createMediaElementSource(video).connect(audioDest); audioWired = true; }
+      if (audioCtx.state === "suspended") audioCtx.resume();
+      return audioDest.stream.getAudioTracks()[0] || null;
+    } catch (e) { return null; }
+  }
+
+  $("btn-convert").addEventListener("click", function () {
+    if (converting || !ready) return;
+    var type = pickType();
+    if (type === null || !pack.captureStream) { say("This browser cannot record video from a page, so it cannot convert clips. Try Chrome, Edge, Firefox or Safari 14.1 or later."); return; }
+    if (!W && !size()) { say("The clip has not finished loading yet. Try again in a moment."); return; }
+    var stream = pack.captureStream(30), track = audioTrack(), hasSound = false;
+    if (track) { stream.addTrack(track); hasSound = true; }
+    try { recorder = new MediaRecorder(stream, type ? { mimeType: type, videoBitsPerSecond: 4000000 } : { videoBitsPerSecond: 4000000 }); }
+    catch (e) { say("Recording could not start in this browser. (" + e.message + ")"); return; }
+    chunks = []; convFrames = 0; converting = true;
+    recorder.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); };
+    recorder.onstop = function () { finish(recorder.mimeType || type || "video/webm", hasSound); };
+    video.pause(); video.loop = false; video.muted = !hasSound; video.currentTime = 0;
+    $("btn-convert").disabled = true; $("btn-stop").hidden = false; $("btn-pick").disabled = true; $("trim").disabled = true; $("result").hidden = true;
+    status.textContent = "Converting"; $("bar").value = 0;
+    var started = false;
+    video.addEventListener("seeked", function go() { video.removeEventListener("seeked", go); if (started) return; started = true; recorder.start(500); tryPlay(); });
+    video.addEventListener("ended", stopNow);
+  });
+  function stopNow() {
+    video.removeEventListener("ended", stopNow);
+    if (recorder && recorder.state !== "inactive") setTimeout(function () { try { recorder.stop(); } catch (e) {} }, 150);   /* let the last frame through */
+  }
+  $("btn-stop").addEventListener("click", function () { video.pause(); stopNow(); });
+
+  function finish(type, hasSound) {
+    converting = false;
+    var blob = new Blob(chunks, { type: type.split(";")[0] }), mp4 = /mp4/.test(type), length = video.currentTime;
+    result = { blob: blob, name: clipName + "-shaped." + (mp4 ? "mp4" : "webm") };
+    $("btn-convert").disabled = false; $("btn-stop").hidden = true; $("btn-pick").disabled = false; $("trim").disabled = false;
+    video.muted = true; video.loop = true; video.currentTime = 0; tryPlay();
+    if (!blob.size) { say("The recording came out empty. Try again, and keep this page on screen while it converts."); status.textContent = "Conversion failed"; return; }
+    $("bar").value = 1; $("progress-text").textContent = "Done"; status.textContent = "Converted";
+    $("f-format").textContent = (mp4 ? "MP4" : "WebM") + " · " + W + " × " + (H * 2);
+    $("f-size").textContent = (blob.size / 1048576).toFixed(1) + " MB";
+    $("f-length").textContent = length.toFixed(1) + " s";
+    var opus = hasSound && mp4 && /opus/i.test(type), fps = length > 0 ? convFrames / length : 0;
+    $("f-sound").textContent = hasSound ? (opus ? "Included (Opus)" : "Included") : "Not captured in this browser";
+    $("f-fps").textContent = fps.toFixed(0) + " frames a second";
+    var note = mp4 ? "MP4 plays on iPhone, Android and desktop browsers."
+      : "This browser records WebM. It plays in Chrome, Edge, Firefox and on Android. iPhones need MP4, which Safari and recent Chrome record.";
+    if (opus) note += " This browser saved the sound as Opus, which some iPhones cannot play; the picture is not affected.";
+    if (fps < 20) note += " This device only managed " + fps.toFixed(0) + " frames a second, so the clip will look choppy. A faster device gives a smoother file.";
+    $("f-note").textContent = note;
+    $("snippet").textContent = '<script src="shaped-player.js"><\/script>\n<shaped-player src="' + result.name + '" corner="bottom-right" width="320" movable controls></shaped-player>';
+    $("result").hidden = false;
+    if (player) { URL.revokeObjectURL(player.getAttribute("src")); player.remove(); }
+    player = document.createElement("shaped-player");
+    player.setAttribute("src", URL.createObjectURL(blob)); player.setAttribute("width", "220"); player.setAttribute("movable", ""); player.setAttribute("controls", ""); player.setAttribute("label", "Your converted clip");
+    document.body.appendChild(player);
+    $("result").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  /* ---------- save ---------- */
+  $("btn-save").addEventListener("click", function () {
+    if (!result) return; var out = $("save-text");
+    function link() {
+      var a = document.createElement("a"), u = URL.createObjectURL(result.blob); a.href = u; a.download = result.name; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(u); }, 60000); out.textContent = "Saving " + result.name;
+    }
+    if (window.claude && typeof window.claude.use === "function") {
+      out.textContent = "Asking to save";
+      window.claude.use("downloads").then(function (d) {
+        if (!d) { link(); return; }
+        return d.save({ filename: result.name, data: result.blob }).then(function () { out.textContent = "Saved " + result.name; });
+      }).catch(function (e) { out.textContent = "Not saved: " + (e && e.message ? e.message : "the save was declined"); });
+    } else link();
+  });
+  window.__shaped = { get result() { return result; }, get type() { return recorder ? recorder.mimeType : ""; } };
+})();
+</script>
+</body>
+</html>
