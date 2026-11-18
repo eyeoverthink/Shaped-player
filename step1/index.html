@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shaped Player Step 1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: one reading column of ordinary page content; the figure floats above it, anchored bottom right, and can be dragged anywhere. */
+:root {
+  --bg: #0B0B0F;
+  --panel: #151318;
+  --line: rgba(255, 255, 255, 0.07);
+  --ink: #E8E6EA;
+  --muted: #8A8792;
+  --accent: #C2185B;
+  --accent-hover: #D6336C;
+  --secondary: #1A2238;
+  --font-ui: "Geist", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --radius: 12px;
+  color-scheme: dark;
+}
+:root[data-bg="paper"] {
+  --bg: #ECE8E1;
+  --panel: #F8F6F2;
+  --line: rgba(20, 16, 24, 0.12);
+  --ink: #17161A;
+  --muted: #625E69;
+  --secondary: #DCD6CB;
+  color-scheme: light;
+}
+:root[data-bg="grid"] {
+  --bg: #0E1730;
+  --panel: #152044;
+  --line: rgba(160, 190, 255, 0.16);
+  --ink: #E9EEFB;
+  --muted: #93A0C4;
+  --secondary: #1C2B5C;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 1.6;
+  font-weight: 450;
+  transition: background-color .25s ease, color .25s ease;
+  -webkit-text-size-adjust: 100%;
+}
+:root[data-bg="grid"] body {
+  background-image:
+    linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+/* ---------- control bar ---------- */
+.bar {
+  position: sticky; top: 0; z-index: 30;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px;
+  padding: 10px 16px;
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+  border-bottom: 1px solid var(--line);
+}
+.bar .group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.bar .spacer { flex: 1 1 auto; }
+button, .swatch {
+  font: 500 13px/1 var(--font-ui);
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 9px 12px;
+  min-height: 36px;
+  cursor: pointer;
+}
+button:hover { border-color: color-mix(in srgb, var(--ink) 30%, transparent); }
+button:focus-visible, .swatch:focus-visible, input:focus-visible { outline: 2px solid var(--accent-hover); outline-offset: 2px; }
+button.primary { background: var(--accent); border-color: transparent; color: #fff; }
+button.primary:hover { background: var(--accent-hover); }
+button[aria-pressed="true"]:not(.primary) { border-color: color-mix(in srgb, var(--ink) 55%, transparent); }
+.swatches { display: flex; gap: 6px; }
+.swatch { width: 36px; padding: 0; position: relative; }
+.swatch::after { content: ""; position: absolute; inset: 7px; border-radius: 6px; background: var(--sw); border: 1px solid rgba(128,128,128,.45); }
+.swatch[aria-pressed="true"] { border-color: color-mix(in srgb, var(--ink) 60%, transparent); }
+.size { display: flex; align-items: center; gap: 8px; font: 500 11px/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.size input { width: 96px; accent-color: var(--accent); }
+.readout {
+  flex: 1 0 100%;
+  font: 400 11px/1.4 var(--font-mono); letter-spacing: .08em; text-transform: uppercase;
+  color: var(--muted); font-variant-numeric: tabular-nums;
+}
+
+/* ---------- page content ---------- */
+main { max-width: 680px; margin: 0 auto; padding: 28px 16px 62vh; display: flex; flex-direction: column; gap: 28px; }
+.eyebrow { font: 500 11px/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 12px; }
+h1 { font-size: clamp(30px, 8vw, 46px); line-height: 1.05; letter-spacing: -0.02em; font-weight: 600; margin: 0 0 14px; text-wrap: balance; }
+h2 { font-size: 19px; line-height: 1.25; font-weight: 600; margin: 0 0 8px; text-wrap: balance; }
+p { margin: 0 0 12px; max-width: 62ch; }
+p:last-child { margin-bottom: 0; }
+.lede { font-size: 17px; color: var(--ink); }
+.muted { color: var(--muted); }
+.card {
+  background: var(--panel); border-radius: var(--radius); padding: 18px;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.28), 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+}
+.tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.tile { border-radius: var(--radius); overflow: hidden; background: var(--panel); margin: 0; }
+.tile img, .tile .art { display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: cover; object-position: 50% 20%; }
+.tile figcaption { font: 400 11px/1.4 var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 9px 12px 11px; }
+.art.sunset { background: radial-gradient(circle at 70% 62%, #FFD27A 0 9%, transparent 9.5%), linear-gradient(180deg, #2B2350 0%, #8B3A62 48%, #E8734A 72%, #2A1B2E 72.2%, #17121C 100%); }
+.art.bars { background: var(--secondary); display: flex; align-items: flex-end; gap: 6%; padding: 12% 10% 0; }
+.art.bars i { flex: 1; background: color-mix(in srgb, var(--ink) 70%, transparent); border-radius: 4px 4px 0 0; }
+.steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.steps li { display: grid; grid-template-columns: 74px 1fr; gap: 12px; align-items: baseline; padding: 12px 0; border-top: 1px solid var(--line); }
+.steps li:first-child { border-top: 0; padding-top: 0; }
+.steps .tag { font: 500 11px/1.5 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.steps .tag.done { color: var(--ink); }
+.filler p { color: var(--muted); }
+
+/* ---------- the shaped player ---------- */
+#stage {
+  position: fixed; right: 4px; bottom: 0; z-index: 20;
+  width: min(58vw, 360px);
+  pointer-events: none;            /* clicks pass through everything that is not the figure */
+  will-change: transform;
+}
+#fig { display: block; width: 100%; height: auto; }
+#stage.boxed #fig { outline: 2px dashed var(--accent-hover); outline-offset: -2px; }
+#stage .boxlabel {
+  display: none; position: absolute; left: 8px; top: 8px;
+  font: 500 11px/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase;
+  background: var(--accent); color: #fff; padding: 6px 8px; border-radius: 6px;
+}
+#stage.boxed .boxlabel { display: block; }
+#src { position: fixed; left: 0; top: 0; width: 2px; height: 2px; opacity: 0; pointer-events: none; }
+.notice { display: none; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; }
+.notice.show { display: block; }
+@media (prefers-reduced-motion: reduce) { body { transition: none; } }
+</style>
+</head>
+<body>
+
+<div class="bar" role="toolbar" aria-label="Player controls">
+  <div class="group">
+    <button id="btn-box" class="primary" type="button" aria-pressed="false">Show the box</button>
+    <button id="btn-sound" type="button" aria-pressed="false">Sound off</button>
+    <button id="btn-play" type="button" aria-pressed="true">Pause</button>
+  </div>
+  <div class="spacer"></div>
+  <div class="group">
+    <label class="size" for="size">Size <input id="size" type="range" min="40" max="130" value="100"></label>
+    <div class="swatches" role="group" aria-label="Page background">
+      <button class="swatch" type="button" data-bg="night" aria-pressed="true" aria-label="Night background" style="--sw:#0B0B0F"></button>
+      <button class="swatch" type="button" data-bg="paper" aria-pressed="false" aria-label="Paper background" style="--sw:#ECE8E1"></button>
+      <button class="swatch" type="button" data-bg="grid" aria-pressed="false" aria-label="Blueprint background" style="--sw:#27408F"></button>
+    </div>
+  </div>
+  <div class="readout" id="readout" aria-live="off">Loading clip</div>
+</div>
+
+<main>
+  <header>
+    <p class="eyebrow">Shaped player · Step 1 of 4</p>
+    <h1>A video with no box around it.</h1>
+    <p class="lede">The figure in the corner is a playing video. Its edge follows the person, and everything outside that edge is this page. Drag him over this text, scroll the page behind him, or change the background.</p>
+    <p class="muted">Press <strong>Show the box</strong> to see the rectangle an ordinary player would draw for the same clip.</p>
+  </header>
+
+  <div class="notice" id="notice"></div>
+
+  <section class="card">
+    <h2>What this step proves</h2>
+    <p>A normal video is a rectangle. Removing the background still leaves a rectangle of something, usually a flat color. Here the player has no rectangle at all: text and images show right up to the outline of the head and shoulders, on any background.</p>
+    <p>Taps and clicks also follow the shape. You can select this text beside his head, and you can only pick him up by touching him.</p>
+  </section>
+
+  <section class="tiles" aria-label="Source and sample images">
+    <figure class="tile">
+      <img src="source.jpg" alt="The original phone recording: the avatar inside a rectangular player on a monitor, with a room behind him" width="720" height="573">
+      <figcaption>Source: phone recording of a screen</figcaption>
+    </figure>
+    <figure class="tile">
+      <div class="art sunset" role="img" aria-label="Sample picture of a sunset"></div>
+      <figcaption>Any image can sit behind him</figcaption>
+    </figure>
+    <figure class="tile">
+      <div class="art bars" role="img" aria-label="Sample bar chart"><i style="height:38%"></i><i style="height:61%"></i><i style="height:47%"></i><i style="height:82%"></i><i style="height:70%"></i></div>
+      <figcaption>Or a chart he is presenting</figcaption>
+    </figure>
+    <figure class="tile">
+      <div class="art" role="img" aria-label="Sample block of solid color" style="background:var(--accent)"></div>
+      <figcaption>Or a flat color</figcaption>
+    </figure>
+  </section>
+
+  <section class="card">
+    <h2>How this clip was made</h2>
+    <p>One file holds two pictures stacked: the color frames on top and a black and white outline of the figure underneath. The page reads both halves of every frame and uses the outline to decide which pixels to draw.</p>
+    <p>That keeps it to a single ordinary H.264 file, which plays on iPhone, Android and desktop browsers alike.</p>
+  </section>
+
+  <section class="card">
+    <h2>Build order</h2>
+    <ol class="steps">
+      <li><span class="tag done">1 · This page</span><span>One clip playing over text and images with no visible rectangle.</span></li>
+      <li><span class="tag">2 · Next</span><span>Background removal inside the browser, so any uploaded clip gets its outline automatically.</span></li>
+      <li><span class="tag">3 · Then</span><span>A shaped embed: one snippet that drops the figure onto any website.</span></li>
+      <li><span class="tag">4 · Then</span><span>Live webcam, cut out in real time for streams.</span></li>
+    </ol>
+  </section>
+
+  <section class="filler">
+    <h2>Scroll room</h2>
+    <p>This paragraph is here so there is something to scroll past him. On a phone, hold the figure and move it up into the cards above, then scroll with your other thumb. The page moves and he stays where you left him.</p>
+    <p>Because nothing outside his outline is drawn, there is no edge to line up, no matching background color to pick, and no corner to round off.</p>
+  </section>
+</main>
+
+<div id="stage">
+  <canvas id="fig" width="480" height="400" aria-label="Shaped video of the avatar talking" role="img"></canvas>
+  <span class="boxlabel">Ordinary player</span>
+</div>
+<video id="src" src="shaped.mp4" muted loop playsinline webkit-playsinline preload="auto" autoplay></video>
+
+<script>
+(function () {
+  "use strict";
+  var video = document.getElementById("src");
+  var canvas = document.getElementById("fig");
+  var stage = document.getElementById("stage");
+  var readout = document.getElementById("readout");
+  var notice = document.getElementById("notice");
+  var W = 0, H = 0, boxed = false, frames = 0, mode = "";
+
+  function say(msg) { notice.textContent = msg; notice.classList.add("show"); }
+
+  /* ---------- drawing: WebGL first, 2D canvas as fallback ---------- */
+  var gl = null, uBox = null, uHalf = null, ctx2d = null, scratch = null, sctx = null;
+  try { gl = canvas.getContext("webgl", { premultipliedAlpha: true, alpha: true, antialias: false }); } catch (e) { gl = null; }
+
+  function initGL() {
+    var vs = "attribute vec2 p; varying vec2 uv; void main(){ uv = vec2((p.x+1.0)*0.5, (1.0-p.y)*0.5); gl_Position = vec4(p,0.0,1.0); }";
+    var fs = "precision mediump float; varying vec2 uv; uniform sampler2D t; uniform float box; uniform float half_px;" +
+             "void main(){ vec3 c = texture2D(t, vec2(uv.x, min(uv.y*0.5, 0.5-half_px))).rgb;" +
+             "float a = texture2D(t, vec2(uv.x, max(0.5+uv.y*0.5, 0.5+half_px))).r;" +
+             "a = mix(smoothstep(0.10, 0.90, a), 1.0, box); gl_FragColor = vec4(c*a, a); }";
+    function sh(type, src) { var s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; }
+    var pr = gl.createProgram(); gl.attachShader(pr, sh(gl.VERTEX_SHADER, vs)); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(pr);
+    if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) throw new Error("link failed");
+    gl.useProgram(pr);
+    var buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+    var loc = gl.getAttribLocation(pr, "p"); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+    gl.bindTexture(gl.TEXTURE_2D, gl.createTexture());
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    uBox = gl.getUniformLocation(pr, "box"); uHalf = gl.getUniformLocation(pr, "half_px");
+    mode = "GPU";
+  }
+  function init2D() {
+    gl = null; ctx2d = canvas.getContext("2d");
+    scratch = document.createElement("canvas"); sctx = scratch.getContext("2d", { willReadFrequently: true });
+    mode = "2D";
+  }
+  if (gl) { try { initGL(); } catch (e) { var c2 = canvas.cloneNode(false); canvas.parentNode.replaceChild(c2, canvas); canvas = c2; init2D(); } }
+  else { init2D(); }
+
+  /* small copy of the outline, used to tell whether a touch landed on the figure */
+  var hit = document.createElement("canvas"), hctx = hit.getContext("2d", { willReadFrequently: true }), hitData = null;
+  hit.width = 48; hit.height = 40;
+
+  function size() {
+    W = video.videoWidth; H = Math.floor(video.videoHeight / 2);
+    if (!W || !H) return false;
+    canvas.width = W; canvas.height = H;
+    if (gl) gl.viewport(0, 0, W, H);
+    if (scratch) { scratch.width = W; scratch.height = H * 2; }
+    hit.height = Math.max(8, Math.round(48 * H / W));
+    return true;
+  }
+
+  function draw() {
+    if (!W && !size()) return;
+    if (video.readyState < 2) return;
+    if (gl) {
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
+      gl.uniform1f(uBox, boxed ? 1 : 0); gl.uniform1f(uHalf, 0.75 / (2 * H));
+      gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    } else {
+      sctx.drawImage(video, 0, 0, W, H * 2);
+      var top = sctx.getImageData(0, 0, W, H);
+      if (!boxed) {
+        var mat = sctx.getImageData(0, H, W, H).data, d = top.data;
+        for (var i = 0; i < d.length; i += 4) d[i + 3] = mat[i];
+      }
+      ctx2d.putImageData(top, 0, 0);
+    }
+    frames++;
+    if (frames % 6 === 1) {
+      try { hctx.drawImage(video, 0, H, W, H, 0, 0, hit.width, hit.height); hitData = hctx.getImageData(0, 0, hit.width, hit.height).data; } catch (e) { hitData = null; }
+      readout.textContent = W + " × " + H + " px · 30 fps · " + mode + " · " + video.currentTime.toFixed(1) + " s of " + (video.duration || 0).toFixed(1) + " s";
+    }
+  }
+  function loop() { draw(); requestAnimationFrame(loop); }
+  requestAnimationFrame(loop);
+
+  video.addEventListener("error", function () { say("The clip did not load. Reload the page; if it still fails, the video file is missing from this page."); readout.textContent = "Clip failed to load"; });
+
+  /* ---------- controls ---------- */
+  var btnBox = document.getElementById("btn-box"), btnSound = document.getElementById("btn-sound"), btnPlay = document.getElementById("btn-play");
+  function syncPlay() { var playing = !video.paused; btnPlay.textContent = playing ? "Pause" : "Play"; btnPlay.setAttribute("aria-pressed", String(playing)); }
+  function tryPlay() { var p = video.play(); if (p && p.catch) p.catch(function () { syncPlay(); }); }
+  video.addEventListener("play", syncPlay); video.addEventListener("pause", syncPlay);
+  tryPlay();
+
+  btnBox.addEventListener("click", function () {
+    boxed = !boxed; stage.classList.toggle("boxed", boxed);
+    btnBox.textContent = boxed ? "Hide the box" : "Show the box"; btnBox.setAttribute("aria-pressed", String(boxed));
+  });
+  btnSound.addEventListener("click", function () {
+    video.muted = !video.muted;
+    if (!video.muted) tryPlay();
+    btnSound.textContent = video.muted ? "Sound off" : "Sound on"; btnSound.setAttribute("aria-pressed", String(!video.muted));
+  });
+  btnPlay.addEventListener("click", function () { if (video.paused) tryPlay(); else video.pause(); });
+
+  var baseWidth = null, sizeInput = document.getElementById("size");
+  sizeInput.addEventListener("input", function () {
+    if (baseWidth === null) baseWidth = stage.getBoundingClientRect().width;
+    stage.style.width = Math.round(baseWidth * sizeInput.value / 100) + "px";
+  });
+  Array.prototype.forEach.call(document.querySelectorAll(".swatch"), function (b) {
+    b.addEventListener("click", function () {
+      var v = b.getAttribute("data-bg");
+      if (v === "night") document.documentElement.removeAttribute("data-bg"); else document.documentElement.setAttribute("data-bg", v);
+      Array.prototype.forEach.call(document.querySelectorAll(".swatch"), function (o) { o.setAttribute("aria-pressed", String(o === b)); });
+    });
+  });
+
+  /* ---------- dragging, only when the touch lands on the figure itself ---------- */
+  var tx = 0, ty = 0, drag = null;
+  function onFigure(x, y) {
+    var r = canvas.getBoundingClientRect();
+    if (x < r.left || x > r.right || y < r.top || y > r.bottom) return false;
+    if (boxed || !hitData) return true;
+    var u = Math.min(hit.width - 1, Math.floor((x - r.left) / r.width * hit.width));
+    var v = Math.min(hit.height - 1, Math.floor((y - r.top) / r.height * hit.height));
+    return hitData[(v * hit.width + u) * 4] > 90;
+  }
+  function start(x, y) { drag = { x: x, y: y, tx: tx, ty: ty }; }
+  function move(x, y) {
+    if (!drag) return;
+    var r = stage.getBoundingClientRect(), vw = window.innerWidth, vh = window.innerHeight;
+    var nx = drag.tx + (x - drag.x), ny = drag.ty + (y - drag.y);
+    var left = r.left - tx + nx, top = r.top - ty + ny;                       /* keep at least a third of him on screen */
+    nx += Math.max(0, -r.width * 0.66 - left) - Math.max(0, left - (vw - r.width * 0.34));
+    ny += Math.max(0, -r.height * 0.5 - top) - Math.max(0, top - (vh - r.height * 0.4));
+    tx = nx; ty = ny; stage.style.transform = "translate(" + tx + "px," + ty + "px)";
+  }
+  function end() { drag = null; document.body.style.cursor = ""; }
+
+  document.addEventListener("mousedown", function (e) { if (e.button === 0 && onFigure(e.clientX, e.clientY)) { start(e.clientX, e.clientY); e.preventDefault(); } });
+  document.addEventListener("mousemove", function (e) {
+    if (drag) { move(e.clientX, e.clientY); document.body.style.cursor = "grabbing"; }
+    else { document.body.style.cursor = onFigure(e.clientX, e.clientY) ? "grab" : ""; }
+  });
+  document.addEventListener("mouseup", end);
+  document.addEventListener("touchstart", function (e) {
+    var t = e.touches[0]; if (e.touches.length === 1 && onFigure(t.clientX, t.clientY)) { start(t.clientX, t.clientY); e.preventDefault(); }
+  }, { passive: false });
+  document.addEventListener("touchmove", function (e) { if (drag) { var t = e.touches[0]; move(t.clientX, t.clientY); e.preventDefault(); } }, { passive: false });
+  document.addEventListener("touchend", end); document.addEventListener("touchcancel", end);
+})();
+</script>
+</body>
+</html>
