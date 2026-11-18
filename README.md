@@ -9,10 +9,11 @@ A video player with no box around it: the video's edge follows the person, and e
 - `step3/` is the embed: `shaped-player.js` plus a demo page. One script tag and one `<shaped-player>` tag put the figure on any page.
 - `step4/` is the converter: choose any clip, and it saves a stacked clip the embed can play.
 - `step5/` is the live webcam, cut out in real time.
+- `step6/` is the studio: record yourself, cut out, over a color, pictures or your screen, and save the video.
 - `pipeline/` holds the two scripts that made the step 1 clip from a phone recording.
-- `index.html` is the showcase home page. It uses the embed itself and links to all five steps.
+- `index.html` is the showcase home page. It uses the embed itself and links to all six steps.
 
-Steps 4 and 5 load the model files from `step2/` and the embed from `step3/`, so keep the folders together.
+Steps 4, 5 and 6 load the model files from `step2/` and the embed from `step3/`, so keep the folders together.
 
 ## Run it
 
@@ -66,6 +67,16 @@ Open `step4/`, choose a video, and press Convert. The clip plays through once wh
 
 Open `step5/` and press Start camera. Browsers only allow the camera on https pages or on localhost, so use GitHub Pages or the local server above. Nothing is recorded or sent anywhere.
 
+## Studio (step 6)
+
+Open `step6/`, turn on the camera, pick a background, and press Start recording. The recording is a normal video file with you composited over the background, plus your microphone.
+
+- Backgrounds: a color, a set of pictures you step through with the arrows, or (on computers) a shared screen or window.
+- Video shape: tall for phones or wide for screens.
+- Phones do not let web pages capture the screen, so on a phone use pictures. Recording the phone's own screen would need a native app.
+- It needs https or localhost for the camera and microphone.
+- It cannot appear as a camera inside Zoom or Meet by itself. To use it there, share the studio window, or load the page in OBS and use OBS's virtual camera.
+
 ## Rebuilding the step 1 clip
 
     pip install "rembg[cpu]" opencv-python-headless numpy pillow
@@ -83,8 +94,13 @@ The crop and trim values in those commands and in `compose.py` are specific to t
 3. Done: a shaped embed, one snippet that drops the figure onto any website.
 4. Done: a converter that turns any clip into the stacked format in the browser.
 5. Done: live webcam, cut out in real time.
+6. Done: studio recorder with backgrounds, microphone and save.
 
 Known limits: the browser outline (steps 2, 4, 5) is softer than the offline one in step 1, and the converter records in real time instead of frame by frame.
+
+## License
+
+MIT. See `LICENSE`.
 
 ## Third-party files
 

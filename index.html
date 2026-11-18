@@ -55,7 +55,7 @@ h1 s { text-decoration-color: var(--accent); text-decoration-thickness: .08em; c
 /* ---------- sections ---------- */
 section { padding: 56px 0; border-top: 1px solid var(--line); }
 h2 { font-size: clamp(26px, 4vw, 38px); line-height: 1.08; letter-spacing: -0.025em; font-weight: 600; margin: 10px 0 22px; text-wrap: balance; max-width: 22ch; }
-.three { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.three { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
 .cap { display: flex; flex-direction: column; gap: 8px; background: var(--panel); border-radius: var(--radius); padding: 20px; text-decoration: none;
   box-shadow: 0 18px 44px rgba(0, 0, 0, .28), 0 1px 0 rgba(255, 255, 255, .04) inset; }
 .cap:hover { box-shadow: 0 18px 44px rgba(0, 0, 0, .28), 0 0 0 1px rgba(255, 255, 255, .16) inset; }
@@ -94,7 +94,7 @@ footer a:hover { color: var(--ink); }
 <div class="wrap">
   <nav aria-label="Site">
     <a class="mark" href="#top">Shaped Player</a>
-    <div class="links"><a href="#how">How it works</a><a href="https://github.com/eyeoverthink/Shaped-player">GitHub</a></div>
+    <div class="links"><a href="#how">How it works</a><a href="#license">License</a><a href="https://github.com/eyeoverthink/Shaped-player">GitHub</a></div>
   </nav>
 
   <header class="hero" id="top">
@@ -104,7 +104,7 @@ footer a:hover { color: var(--ink); }
       <p class="lede">Shaped Player shows video in the shape of whoever is in it. The page shows through everywhere else: no frame, no background, no corners.</p>
       <div class="actions">
         <a class="btn" href="step4/">Make a shaped clip</a>
-        <a class="text-link" href="#demos">See all five demos</a>
+        <a class="text-link" href="#demos">See all six demos</a>
       </div>
     </div>
     <div class="frame" aria-label="Demo: the dashed outline is where an ordinary video player would sit">
@@ -117,12 +117,13 @@ footer a:hover { color: var(--ink); }
   </header>
 
   <section id="what">
-    <p class="mono">Three pieces</p>
-    <h2>Make the clip, paste the tag, or go live.</h2>
+    <p class="mono">Four pieces</p>
+    <h2>Make the clip, paste the tag, go live, or record.</h2>
     <div class="three">
       <a class="cap" href="step4/"><h3>Convert</h3><p>Choose any video. The person is cut out in your browser and saved as one file. Nothing is uploaded.</p><span class="go">Open the converter →</span></a>
       <a class="cap" href="step3/"><h3>Embed</h3><p>One script and one tag put the figure on any website, in a corner or inside the layout.</p><span class="go">Try the embed →</span></a>
       <a class="cap" href="step5/"><h3>Live</h3><p>Your webcam, cut out as it arrives, as a shape you can drag over the page.</p><span class="go">Start the camera →</span></a>
+      <a class="cap" href="step6/"><h3>Studio</h3><p>Record yourself over pictures, slides or your screen, then save the video. Made for lessons, homework, demos and interviews.</p><span class="go">Open the studio →</span></a>
     </div>
   </section>
 
@@ -174,22 +175,23 @@ footer a:hover { color: var(--ink); }
 
   <section id="demos">
     <p class="mono">The build, step by step</p>
-    <h2>Five working demos.</h2>
+    <h2>Six working demos.</h2>
     <ul class="facts">
       <li><span class="mono">Step 1</span><a href="step1/">A clip with no box, over text and images</a></li>
       <li><span class="mono">Step 2</span><a href="step2/">Any clip cut out live in the browser</a></li>
       <li><span class="mono">Step 3</span><a href="step3/">The embed, with settings and a live snippet</a></li>
       <li><span class="mono">Step 4</span><a href="step4/">The converter</a></li>
       <li><span class="mono">Step 5</span><a href="step5/">Live webcam</a></li>
+      <li><span class="mono">Step 6</span><a href="step6/">Studio: record yourself over anything</a></li>
     </ul>
   </section>
 
-  <section>
+  <section id="license">
     <div class="license">
       <div>
-        <p class="mono">Licensing</p>
-        <h2>Want this on your platform?</h2>
-        <p>Shaped Player is available to license for sites, apps and streaming tools. Get in touch through the project's GitHub page.</p>
+        <p class="mono">License</p>
+        <h2>Free to use, change and ship.</h2>
+        <p>Shaped Player is open source under the MIT license. Use it on your own site or build it into your product; keep the copyright notice with the code.</p>
       </div>
       <a class="text-link" href="https://github.com/eyeoverthink/Shaped-player">github.com/eyeoverthink/Shaped-player</a>
     </div>
