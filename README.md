@@ -6,8 +6,9 @@ A video player with no box around it: the video's edge follows the person, and e
 
 - `step1/` plays one clip over text and images with no visible rectangle. The outline was made ahead of time and is stored inside the video file.
 - `step2/` cuts the person out of any clip live in the browser. Choose your own file; it stays on your device.
+- `step3/` is the embed: `shaped-player.js` plus a demo page. One script tag and one `<shaped-player>` tag put the figure on any page.
 - `pipeline/` holds the two scripts that made the step 1 clip from a phone recording.
-- `index.html` links to both steps.
+- `index.html` links to all three steps.
 
 ## Run it
 
@@ -29,6 +30,26 @@ A person-segmentation model (MediaPipe Selfie Segmentation) runs on the page and
 
 Two of the model's binary files are stored as base64 text (`*_binarypb.txt`, `*_tflite.txt`) and unpacked by a small fetch shim in `step2/index.html`, so the page also runs on hosts that only serve common file types.
 
+## Using the embed (step 3)
+
+Copy `step3/shaped-player.js` and a stacked clip to your site, then:
+
+    <script src="shaped-player.js"></script>
+    <shaped-player src="shaped.mp4" corner="bottom-right" width="320" movable controls></shaped-player>
+
+| Attribute | What it does |
+|---|---|
+| `src` | The stacked clip (required). |
+| `corner` | `bottom-right` (default), `bottom-left`, `top-right`, `top-left`, or `inline` to sit in the page where the tag is. |
+| `width` | Pixels, or any CSS length. Default 320. |
+| `movable` | Visitors can drag the figure. |
+| `controls` | Shows a small sound button. |
+| `label` | Description for screen readers. |
+
+From script: `play()`, `pause()`, the `muted` property, and a `shapedready` event when the first frame is drawn. The clip starts muted, as browsers require for autoplay. The script is 12 KB and loads no other libraries.
+
+The clip must be served from the same site as the page, or with CORS headers, because the browser has to read its pixels.
+
 ## Rebuilding the step 1 clip
 
     pip install "rembg[cpu]" opencv-python-headless numpy pillow
@@ -43,8 +64,10 @@ The crop and trim values in those commands and in `compose.py` are specific to t
 
 1. Done: one clip with no visible rectangle.
 2. Done: background removal inside the browser.
-3. Next: a shaped embed, one snippet that drops the figure onto any website.
-4. Then: live webcam, cut out in real time.
+3. Done: a shaped embed, one snippet that drops the figure onto any website.
+4. Next: live webcam, cut out in real time.
+
+Not built yet: a converter that turns any clip into the stacked format in the browser. Today that format comes from the `pipeline/` scripts.
 
 ## Third-party files
 

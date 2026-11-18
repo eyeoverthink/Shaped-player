@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shaped Player Step 3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: one reading column of ordinary page content; the figure floats above it, anchored bottom right, and can be dragged anywhere. */
+:root {
+  --bg: #0B0B0F;
+  --panel: #151318;
+  --line: rgba(255, 255, 255, 0.07);
+  --ink: #E8E6EA;
+  --muted: #8A8792;
+  --accent: #C2185B;
+  --accent-hover: #D6336C;
+  --secondary: #1A2238;
+  --font-ui: "Geist", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --radius: 12px;
+  color-scheme: dark;
+}
+:root[data-bg="paper"] {
+  --bg: #ECE8E1;
+  --panel: #F8F6F2;
+  --line: rgba(20, 16, 24, 0.12);
+  --ink: #17161A;
+  --muted: #625E69;
+  --secondary: #DCD6CB;
+  color-scheme: light;
+}
+:root[data-bg="grid"] {
+  --bg: #0E1730;
+  --panel: #152044;
+  --line: rgba(160, 190, 255, 0.16);
+  --ink: #E9EEFB;
+  --muted: #93A0C4;
+  --secondary: #1C2B5C;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 1.6;
+  font-weight: 450;
+  transition: background-color .25s ease, color .25s ease;
+  -webkit-text-size-adjust: 100%;
+}
+:root[data-bg="grid"] body {
+  background-image:
+    linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+/* ---------- control bar ---------- */
+.bar {
+  position: sticky; top: 0; z-index: 30;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px;
+  padding: 10px 16px;
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+  border-bottom: 1px solid var(--line);
+}
+.bar .group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.bar .spacer { flex: 1 1 auto; }
+button, .swatch {
+  font: 500 13px/1 var(--font-ui);
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 9px 12px;
+  min-height: 36px;
+  cursor: pointer;
+}
+button:hover { border-color: color-mix(in srgb, var(--ink) 30%, transparent); }
+button:focus-visible, .swatch:focus-visible, input:focus-visible { outline: 2px solid var(--accent-hover); outline-offset: 2px; }
+button.primary { background: var(--accent); border-color: transparent; color: #fff; }
+button.primary:hover { background: var(--accent-hover); }
+button[aria-pressed="true"]:not(.primary) { border-color: color-mix(in srgb, var(--ink) 55%, transparent); }
+.swatches { display: flex; gap: 6px; }
+.swatch { width: 36px; padding: 0; position: relative; }
+.swatch::after { content: ""; position: absolute; inset: 7px; border-radius: 6px; background: var(--sw); border: 1px solid rgba(128,128,128,.45); }
+.swatch[aria-pressed="true"] { border-color: color-mix(in srgb, var(--ink) 60%, transparent); }
+.size { display: flex; align-items: center; gap: 8px; font: 500 11px/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.size input { width: 96px; accent-color: var(--accent); }
+.readout {
+  flex: 1 0 100%;
+  font: 400 11px/1.4 var(--font-mono); letter-spacing: .08em; text-transform: uppercase;
+  color: var(--muted); font-variant-numeric: tabular-nums;
+}
+
+/* ---------- page content ---------- */
+main { max-width: 680px; margin: 0 auto; padding: 28px 16px 62vh; display: flex; flex-direction: column; gap: 28px; }
+.eyebrow { font: 500 11px/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 12px; }
+h1 { font-size: clamp(30px, 8vw, 46px); line-height: 1.05; letter-spacing: -0.02em; font-weight: 600; margin: 0 0 14px; text-wrap: balance; }
+h2 { font-size: 19px; line-height: 1.25; font-weight: 600; margin: 0 0 8px; text-wrap: balance; }
+p { margin: 0 0 12px; max-width: 62ch; }
+p:last-child { margin-bottom: 0; }
+.lede { font-size: 17px; color: var(--ink); }
+.muted { color: var(--muted); }
+.card {
+  background: var(--panel); border-radius: var(--radius); padding: 18px;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.28), 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+}
+.tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.tile { border-radius: var(--radius); overflow: hidden; background: var(--panel); margin: 0; }
+.tile img, .tile .art { display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: cover; object-position: 50% 20%; }
+.tile figcaption { font: 400 11px/1.4 var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 9px 12px 11px; }
+.art.sunset { background: radial-gradient(circle at 70% 62%, #FFD27A 0 9%, transparent 9.5%), linear-gradient(180deg, #2B2350 0%, #8B3A62 48%, #E8734A 72%, #2A1B2E 72.2%, #17121C 100%); }
+.art.bars { background: var(--secondary); display: flex; align-items: flex-end; gap: 6%; padding: 12% 10% 0; }
+.art.bars i { flex: 1; background: color-mix(in srgb, var(--ink) 70%, transparent); border-radius: 4px 4px 0 0; }
+.steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.steps li { display: grid; grid-template-columns: 74px 1fr; gap: 12px; align-items: baseline; padding: 12px 0; border-top: 1px solid var(--line); }
+.steps li:first-child { border-top: 0; padding-top: 0; }
+.steps .tag { font: 500 11px/1.5 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.steps .tag.done { color: var(--ink); }
+.filler p { color: var(--muted); }
+
+
+/* ---------- step 3 additions ---------- */
+main { padding-top: 36px; }
+pre { margin: 0 0 12px; padding: 14px; overflow-x: auto; background: var(--bg); border: 1px solid var(--line); border-radius: 10px;
+      font: 400 12.5px/1.6 var(--font-mono); color: var(--ink); white-space: pre; }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+.settings { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px 18px; }
+.field { display: flex; flex-direction: column; gap: 8px; font: 500 11px/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.field select, .field input[type="range"] { width: 100%; }
+select { font: 500 14px/1 var(--font-ui); color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px; min-height: 38px; }
+.check { flex-direction: row; align-items: center; gap: 10px; text-transform: none; letter-spacing: 0; font: 500 14px/1.2 var(--font-ui); color: var(--ink); min-height: 38px; }
+.check input { width: 18px; height: 18px; accent-color: var(--accent); }
+input[type="range"] { accent-color: var(--accent); }
+.status { font: 400 11px/1.4 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.mock { border-radius: var(--radius); overflow: hidden; background: #F4EFE6; color: #2A2320; box-shadow: 0 18px 44px rgba(0,0,0,.28); }
+.mock .nav { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 16px; background: #2A2320; color: #F4EFE6; font: 600 14px/1 var(--font-ui); }
+.mock .nav span:last-child { font-weight: 450; opacity: .75; font-size: 13px; }
+.mock .body { padding: 20px 16px 24px; display: flex; flex-direction: column; gap: 10px; }
+.mock h3 { margin: 0; font-size: 22px; line-height: 1.15; letter-spacing: -0.01em; }
+.mock p { margin: 0; color: #5A4E48; max-width: 46ch; }
+.mock .cta { align-self: flex-start; margin-top: 6px; background: #2A2320; color: #F4EFE6; border-radius: 10px; padding: 10px 14px; font: 500 14px/1 var(--font-ui); }
+.mock .kiln { height: 120px; border-radius: 10px; background: linear-gradient(135deg, #C96F4A 0%, #E2A66B 55%, #F0D9A8 100%); }
+</style>
+</head>
+<body>
+
+<main>
+  <header>
+    <p class="eyebrow">Shaped player · Step 3 of 4</p>
+    <h1>One tag puts him on any website.</h1>
+    <p class="lede">The figure on this page was not built into it. He comes from one small script file and one line of HTML, the same two things any site owner would paste in.</p>
+    <p class="status" id="status" aria-live="polite">Loading the player</p>
+  </header>
+
+  <section class="card">
+    <h2>The snippet</h2>
+    <p>Change the settings below and this updates to match.</p>
+    <pre><code id="snippet"></code></pre>
+    <div class="row">
+      <button id="copy" class="primary" type="button">Copy the snippet</button>
+      <span class="muted" id="copied" aria-live="polite"></span>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Settings</h2>
+    <div class="settings">
+      <label class="field" for="corner">Where he sits
+        <select id="corner">
+          <option value="bottom-right">Bottom right</option>
+          <option value="bottom-left">Bottom left</option>
+          <option value="top-right">Top right</option>
+          <option value="top-left">Top left</option>
+          <option value="inline">In the page, where the tag is</option>
+        </select>
+      </label>
+      <label class="field" for="width">Width <span id="width-out">240 px</span>
+        <input id="width" type="range" min="120" max="420" step="10" value="240">
+      </label>
+      <label class="field check" for="movable"><input id="movable" type="checkbox" checked> Visitors can drag him</label>
+      <label class="field check" for="controls"><input id="controls" type="checkbox" checked> Show a sound button</label>
+    </div>
+  </section>
+
+  <section aria-label="Sample website">
+    <p class="eyebrow">A sample site he could sit on</p>
+    <div class="mock">
+      <div class="nav"><span>Saturday Clay Studio</span><span>Classes · Visit · Shop</span></div>
+      <div class="body">
+        <div class="kiln" role="img" aria-label="Sample banner picture"></div>
+        <h3>Throw your first bowl this weekend.</h3>
+        <p>Two hours at the wheel, all clay and glazes included. This studio is made up; it stands in for whatever site the tag is pasted into.</p>
+        <span class="cta">Book a class</span>
+        <div id="inline-slot"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>What a site owner needs</h2>
+    <ol class="steps">
+      <li><span class="tag done">File 1</span><span><strong>shaped-player.js</strong>, 12 KB. It has no other libraries to load.</span></li>
+      <li><span class="tag done">File 2</span><span>A clip in the stacked format from step 1: picture on top, outline underneath, in one ordinary MP4.</span></li>
+      <li><span class="tag">Not yet</span><span>A way for them to make that clip themselves. Today it comes from the two scripts in the pipeline folder. Turning step 2 into a converter that saves this file is the missing piece.</span></li>
+    </ol>
+  </section>
+
+  <section class="card">
+    <h2>Build order</h2>
+    <ol class="steps">
+      <li><span class="tag done">1 · Done</span><span>One clip playing over text and images with no visible rectangle.</span></li>
+      <li><span class="tag done">2 · Done</span><span>Background removal inside the browser, so any clip gets its outline automatically.</span></li>
+      <li><span class="tag done">3 · This page</span><span>A shaped embed: one snippet that drops the figure onto any website.</span></li>
+      <li><span class="tag">4 · Next</span><span>Live webcam, cut out in real time for streams.</span></li>
+    </ol>
+  </section>
+</main>
+
+<script src="shaped-player.js"></script>
+<shaped-player id="sp" src="shaped.mp4" corner="bottom-right" width="240" movable controls label="Avatar talking"></shaped-player>
+
+<script>
+(function () {
+  "use strict";
+  var sp = document.getElementById("sp"), snippet = document.getElementById("snippet"), status = document.getElementById("status");
+  var corner = document.getElementById("corner"), width = document.getElementById("width"), widthOut = document.getElementById("width-out");
+  var movable = document.getElementById("movable"), controls = document.getElementById("controls");
+  var slot = document.getElementById("inline-slot"), home = sp.parentNode;
+
+  function text() {
+    var a = ' src="shaped.mp4" corner="' + corner.value + '" width="' + width.value + '"' + (movable.checked ? " movable" : "") + (controls.checked ? " controls" : "");
+    return '<script src="shaped-player.js"><\/script>\n<shaped-player' + a + '></shaped-player>';
+  }
+  function apply() {
+    sp.setAttribute("corner", corner.value); sp.setAttribute("width", width.value);
+    sp.toggleAttribute("movable", movable.checked); sp.toggleAttribute("controls", controls.checked);
+    sp.style.transform = ""; sp._tx = 0; sp._ty = 0;                       /* put him back where the setting says */
+    var want = corner.value === "inline" ? slot : home;
+    if (sp.parentNode !== want) want.appendChild(sp);
+    widthOut.textContent = width.value + " px";
+    snippet.textContent = text();
+  }
+  [corner, width, movable, controls].forEach(function (el) { el.addEventListener("input", apply); el.addEventListener("change", apply); });
+  apply();
+
+  if (!window.customElements || !customElements.get("shaped-player")) status.textContent = "The player script did not load";
+  sp.addEventListener("shapedready", function () { status.textContent = "Player running from shaped-player.js"; });
+  sp.addEventListener("shapederror", function (e) { status.textContent = e.detail; });
+
+  document.getElementById("copy").addEventListener("click", function () {
+    var out = document.getElementById("copied"), t = text();
+    function manual() { var r = document.createRange(); r.selectNodeContents(snippet); var s = window.getSelection(); s.removeAllRanges(); s.addRange(r); out.textContent = "Selected. Copy it from here."; }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(function () { out.textContent = "Copied."; }, manual); else manual();
+  });
+})();
+</script>
+</body>
+</html>
